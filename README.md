@@ -15,7 +15,7 @@ A roleplay companion discord bot written in C#.
 
 ### v.0.2: 3/14/2023
 - added /analyze
-- changed roll options to have minimum and maximum values so that checking for invalid input is no longer necessary.
+- changed roll options to have minimum and maximum values.
 - cleaned up some of the code and added private methods with introduction of /analyze to improve code readability and to prevent code duplication.
 - improved formatting
 
