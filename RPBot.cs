@@ -1,12 +1,14 @@
 ﻿/**
  * Simple Discord RP Companion Bot.
  * Created by Austen Tankersley.
- * V 0.1 March 9th, 2023.
+ * V 0.2 March 14th, 2023.
  */
 
 using Discord;
+//using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
+//using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 
@@ -25,32 +27,45 @@ public class RPBot
 
         var token = System.IO.File.ReadAllText(@"C:\Apps\Azemalolth\token.txt"); //read bot token from file.
 
-        await _client.LoginAsync(TokenType.Bot, token);
-        await _client.StartAsync();
+        await _client.LoginAsync(TokenType.Bot, token); //login bot using token
+        await _client.StartAsync(); //start connection
         _client.Ready += Client_Ready;
         _client.SlashCommandExecuted += SlashCommandHandler;
 
-        // Block this task until the program is closed.
+        // Prevent MainAsync from completing until program is closed
         await Task.Delay(-1);
     }
     
     public async Task Client_Ready()
     {
+        //declare basic roll options.
+        var numberOption = CreateIntOption("number", "the number of dice to roll", true, 1, 300);
+        var sidesOption = CreateIntOption("sides", "the number of sides of the dice", true, 1, 1000);
+        var plusOption = CreateIntOption("plus", "the number to add to the roll", true, -1000, 1000);
+        SlashCommandOptionBuilder[] rollOptions = {numberOption, sidesOption, plusOption};
+
+        //declare roll command
         var rollDiceCommand = new SlashCommandBuilder().WithName("roll").WithDescription("Roll dice!")
-            .AddOption("number", ApplicationCommandOptionType.Integer, "the number of dice to roll", isRequired: true)
-            .AddOption("sides", ApplicationCommandOptionType.Integer, "the number of sides of the dice",
-                isRequired: true).AddOption("plus", ApplicationCommandOptionType.Integer,
-                "the number to add to the roll.", isRequired: true).AddOption("display-rolls",
+            .AddOptions(rollOptions).AddOption("display-rolls",
                 ApplicationCommandOptionType.Boolean, "whether or not to list all of the rolls made.",
                 isRequired: false);
         
+        //declare analyze command
+        var analyzeRollCommand = new SlashCommandBuilder().WithName("analyze")
+            .WithDescription("Get min, max, and average for a roll.").AddOptions(rollOptions);
+        
         try
         {
+            //create slash commands
             await _client.CreateGlobalApplicationCommandAsync(rollDiceCommand.Build());
+            await _client.CreateGlobalApplicationCommandAsync(analyzeRollCommand.Build());
         }
         catch(HttpException exception)
         {
+            //serialize exception to json
             var json = JsonConvert.SerializeObject(exception.Errors, Formatting.Indented);
+            
+            //write error to console
             Console.WriteLine(json);
         }
     } 
@@ -62,6 +77,9 @@ public class RPBot
         {
             case "roll":
                 await HandleRollCommand(command);
+                break;
+            case "analyze":
+                await HandleAnalyzeCommand(command);
                 break;
         }
     }
@@ -85,16 +103,7 @@ public class RPBot
         List<int> rollList = new List<int>();
         var outputString = "";
         
-        if (numberOfDice <= 0)
-        {
-            await command.RespondAsync("*Cannot roll 0 or less dice.*");
-        }
-
-        if (numberOfSides <= 0)
-        {
-            await command.RespondAsync("*Cannot roll dice with number of sides less than 1.*");
-        }
-        
+        //generate rolls
         for (int i = 0; i < numberOfDice; i++)
         {
             currRoll = random.Next(1, numberOfSides + 1);
@@ -105,21 +114,32 @@ public class RPBot
         totalRoll = totalRoll + numberToAdd;
         
         outputString += $"Rolled {numberOfDice}d{numberOfSides}";
-        if (numberToAdd < 0)
-        {
-            outputString += $" {numberToAdd}\n";
-        }
-        else
-        {
-            outputString += $" + {numberToAdd}\n";
-        }
+        
+        //check if number to add is negative for formatting purposes
+        outputString += GetPlusOrMinusString(numberToAdd) + "\n";
 
         outputString += $"Result: **{totalRoll}**\n";
 
         if (listRollsBool)
         {
-            outputString += $"Rolls: {getRollList(rollList)}";
+            outputString += $"Rolls: `{GetRollList(rollList)}`";
         }
+        await command.RespondAsync(outputString);
+    }
+
+    private async Task HandleAnalyzeCommand(SocketSlashCommand command)
+    {
+        var numberOfDice = (long)command.Data.Options.First().Value;
+        var numberOfSides = (long)command.Data.Options.ElementAt(1).Value;
+        var numberToAdd = (long)command.Data.Options.ElementAt(2).Value;
+
+        var outputString = $"Analyzing {numberOfDice}d{numberOfSides}";
+        outputString += GetPlusOrMinusString((int)numberToAdd) + "\n";
+        
+        outputString += $"Minimum roll: `{(numberOfDice + numberToAdd)}`\n";
+        outputString += $"Maximum roll: `{((numberOfDice * numberOfSides) + numberToAdd)}`\n";
+        outputString += $"Average roll: `{(numberOfDice * (numberOfSides + 1.0)/2.0) +numberToAdd}`";
+
         await command.RespondAsync(outputString);
     }
     
@@ -128,7 +148,7 @@ public class RPBot
 /// </summary>
 /// <param name="rollList"> The list of rolls that need to be displayed.</param>
 /// <returns>A string listing each individual roll in the given list separated by " + ".</returns>
-    private string getRollList(List<int> rollList)
+    private string GetRollList(List<int> rollList)
     {
         var rollListString = "";
 
@@ -142,11 +162,53 @@ public class RPBot
         }
         return rollListString;
     }
+
+/// <summary>
+/// Gets a string with an addition or subtraction operation dependent on whether the given number is negative or positive.
+/// </summary>
+/// <param name="numberToAdd">The number in the addition or subtraction operation.</param>
+/// <returns>A string with the correct operation.</returns>
+public string GetPlusOrMinusString(int numberToAdd)
+{
+    var outString = "";
+    if (numberToAdd < 0)
+    {
+        outString += $" - {numberToAdd * -1}";
+    }
+    else
+    {
+        outString += $" + {numberToAdd}";
+    }
+
+    return outString;
+}
     private Task Log(LogMessage msg)
     {
         Console.WriteLine(msg.ToString());
         return Task.CompletedTask;
     }
-    
+
+    /// <summary>
+    /// Creates an option of input type int with basic properties.
+    /// </summary>
+    /// <param name="name">option name.</param>
+    /// <param name="description"> option description.</param>
+    /// <param name="required">Whether option is required for command.</param>
+    /// <param name="minVal">Minimum value of the option.</param>
+    /// <param name="maxVal">Maximum value of the option.</param>
+    /// <returns></returns>
+    private SlashCommandOptionBuilder CreateIntOption(string name, string description, bool required, int minVal, int maxVal)
+    {
+        var option = new SlashCommandOptionBuilder();
+        
+        //set option properties
+        option.Name = name;
+        option.Description = description;
+        option.Type = ApplicationCommandOptionType.Integer;
+        option.IsRequired = required;
+        option.MinValue = minVal;
+        option.MaxValue = maxVal;
+        return option;
+    }
 
 }
