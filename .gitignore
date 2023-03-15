@@ -1,3 +1,4 @@
-obj/*
-bin/*
-RPBot.csproj
+RPBot/obj/
+RPBot/bin/
+.idea/.idea.Azemalolth/.idea/workspace.xml
+RPBot.sln.DotSettings.user

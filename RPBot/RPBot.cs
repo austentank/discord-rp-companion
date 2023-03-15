@@ -5,10 +5,8 @@
  */
 
 using Discord;
-//using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
-//using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 
@@ -133,8 +131,8 @@ public class RPBot
         var numberOfSides = (long)command.Data.Options.ElementAt(1).Value;
         var numberToAdd = (long)command.Data.Options.ElementAt(2).Value;
 
-        var outputString = $"Analyzing {numberOfDice}d{numberOfSides}...";
-        outputString += GetPlusOrMinusString((int)numberToAdd) + "\n";
+        var outputString = $"Analyzed {numberOfDice}d{numberOfSides}";
+        outputString += GetPlusOrMinusString((int)numberToAdd) + "...\n";
         
         outputString += $"Minimum roll: `{(numberOfDice + numberToAdd)}`\n";
         outputString += $"Maximum roll: `{((numberOfDice * numberOfSides) + numberToAdd)}`\n";
@@ -168,7 +166,7 @@ public class RPBot
 /// </summary>
 /// <param name="numberToAdd">The number in the addition or subtraction operation.</param>
 /// <returns>A string with the correct operation.</returns>
-public string GetPlusOrMinusString(int numberToAdd)
+public static string GetPlusOrMinusString(int numberToAdd)
 {
     var outString = "";
     if (numberToAdd < 0)
@@ -182,7 +180,7 @@ public string GetPlusOrMinusString(int numberToAdd)
 
     return outString;
 }
-    private Task Log(LogMessage msg)
+    private static Task Log(LogMessage msg)
     {
         Console.WriteLine(msg.ToString());
         return Task.CompletedTask;
@@ -197,7 +195,7 @@ public string GetPlusOrMinusString(int numberToAdd)
     /// <param name="minVal">Minimum value of the option.</param>
     /// <param name="maxVal">Maximum value of the option.</param>
     /// <returns></returns>
-    private SlashCommandOptionBuilder CreateIntOption(string name, string description, bool required, int minVal, int maxVal)
+    private static SlashCommandOptionBuilder CreateIntOption(string name, string description, bool required, int minVal, int maxVal)
     {
         var option = new SlashCommandOptionBuilder();
         
