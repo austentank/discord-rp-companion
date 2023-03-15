@@ -4,6 +4,18 @@
 
 A roleplay companion discord bot written in C#.
 
+## GETTING STARTED:
+
+First, install all Discord.Net packages via NuGet. Afterwards:
+
+- Clone the repository
+- Open the .sln in your IDE
+- Open RPBot.cs
+- Change the filepath for the variable named "token" to a file containing your bot's login token for secure authentication
+- Compile and run RPBot.cs
+
+Your bot should then come online and have the ability to use the slash commands.
+
 
 ## COMMANDS:
 
