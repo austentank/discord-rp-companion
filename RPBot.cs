@@ -133,7 +133,7 @@ public class RPBot
         var numberOfSides = (long)command.Data.Options.ElementAt(1).Value;
         var numberToAdd = (long)command.Data.Options.ElementAt(2).Value;
 
-        var outputString = $"Analyzing {numberOfDice}d{numberOfSides}";
+        var outputString = $"Analyzing {numberOfDice}d{numberOfSides}...";
         outputString += GetPlusOrMinusString((int)numberToAdd) + "\n";
         
         outputString += $"Minimum roll: `{(numberOfDice + numberToAdd)}`\n";
